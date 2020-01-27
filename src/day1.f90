@@ -40,6 +40,8 @@ contains
             end if
         end do
         
+        close (1)
+        
         print *, accum
     end subroutine part1
     
@@ -58,6 +60,8 @@ contains
                 exit
             end if
         end do
+        
+        close (1)
         
         print *, accum
     end subroutine part2
