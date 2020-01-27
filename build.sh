@@ -1,3 +1,6 @@
-gfortran src/*.f90 -o aoc2019
-# rm **/**.mod
-# rm *.mod
+gfortran -c src/*.f90
+gfortran *.o -o aoc2019
+
+rm *.o
+
+time ./aoc2019 $1 $2
