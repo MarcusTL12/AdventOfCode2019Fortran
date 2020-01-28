@@ -99,10 +99,21 @@ contains
     subroutine part2()
         implicit none
         !
+        integer :: i
         type(charCollecter) :: tempcol
+        character (len=22) :: name = 'Marcus Takvam Lexander'
         !
-        call tempcol%New(100)
+        call tempcol%New(3)
         !
+        do i = 1, len(name)
+            call tempcol%push(name(i:i))
+            exit
+        end do
+        !
+        do i = 1, tempcol%blockindex
+            print *, tempcol%data(i)%data
+        end do
+        print *, size(tempcol)
     end subroutine part2
     !
     ! Want this to be here for future reference
