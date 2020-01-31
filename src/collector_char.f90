@@ -2,11 +2,17 @@
 #define TYPE_NAME char
 #include "collector.f90_template"
 
+#define COLLECTOR_TYPE char_arr
+#define TYPE_NAME char_arr
+#define TYPE_MODULE utilmodule
+#include "collector.f90_template"
+
 module collectormodule_char_spes
     use collectormodule_char
+    use collectormodule_char_arr
     implicit none
     !
-    public collector_char_print
+    public :: collector_char_print, splitwithdelimiter
     !
     interface read (unformatted)
         module procedure readUnformatted
@@ -86,4 +92,30 @@ contains
         end do
         print *
     end subroutine collector_char_print
+    !
+    function splitwithdelimiter(str, delim) result(ret)
+        implicit none
+        !
+        character, intent(in) :: str(:), delim
+        type(char_arr), allocatable :: ret(:)
+        type(char_arr) :: buffer
+        type(collector_char_arr) :: coll
+        integer :: i, curstart
+        !
+        call coll%New(16)
+        !
+        curstart = 1
+        do i = 1, size(str)
+            if (str(i) == delim) then
+                call buffer%New(str(curstart:i - 1))
+                call coll%push(buffer)
+                curstart = i + 1
+            end if
+        end do
+        !
+        call buffer%New(str(curstart:))
+        call coll%push(buffer)
+        !
+        ret = coll%toarray()
+    end function splitwithdelimiter
 end module collectormodule_char_spes

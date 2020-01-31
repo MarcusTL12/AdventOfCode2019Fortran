@@ -1,4 +1,4 @@
-gfortran -cpp -c src/*.f90 lib/ftl/*.F90
+gfortran -cpp -c src/*.f90
 gfortran *.o -o aoc2019
 
 rm *.o
