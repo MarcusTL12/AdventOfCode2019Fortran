@@ -1,6 +1,9 @@
 module day3
     use ftlstringmodule
-    use collectermodule
+    use collectormodule_char
+    use collectormodule_char_spes
+    ! use collectormodule_int
+    use utilmodule
     implicit none
     !
     public :: part1, part2
@@ -18,7 +21,7 @@ contains
     subroutine loadfile(filename, arr1, arr2)
         implicit none
         !
-        character (len=*), intent(in) :: filename
+        character(len=*), intent(in) :: filename
         type(ftlString), allocatable, intent(out) :: arr1(:), arr2(:)
         !
         type(ftlString) :: lines(2)
@@ -54,7 +57,7 @@ contains
     subroutine loadandparse(filename, path1, path2)
         implicit none
         !
-        character (len=*), intent(in)        :: filename
+        character(len=*), intent(in)        :: filename
         type(step), allocatable, intent(out) :: path1(:), path2(:)
         !
         type(ftlString), allocatable :: arr1(:), arr2(:)
@@ -70,16 +73,15 @@ contains
     subroutine loadfile2(filename, out)
         implicit none
         !
-        character (len=*), intent(in) :: filename
+        character(len=*), intent(in) :: filename
         type(strArr), allocatable, intent(out) :: out
         !
-        
     end subroutine loadfile2
     !
     pure integer function countlines(filename)
         implicit none
         !
-        character (len=*), intent(in) :: filename
+        character(len=*), intent(in) :: filename
         !
         countlines = len(filename)
     end function
@@ -96,24 +98,32 @@ contains
         deallocate (path1, path2)
     end subroutine part1
     !
+    function testfunc(arr, ind) result(ret)
+        implicit none
+        !
+        character, target :: arr(:)
+        integer :: ind
+        character, pointer :: ret
+        !
+        ret => arr(ind)
+    end function testfunc
+    !
     subroutine part2()
         implicit none
         !
-        integer :: i
-        type(charCollecter) :: tempcol
-        character (len=22) :: name = 'Marcus Takvam Lexander'
+        type(collector_char) :: coll(2)
         !
-        call tempcol%New(3)
+        call coll(1)%New(100)
+        call coll(2)%New(100)
         !
-        do i = 1, len(name)
-            call tempcol%push(name(i:i))
-            exit
-        end do
+        open (unit=1, file='inputfiles/day3/input.txt')
+        read (1, *) coll
+        close (1)
         !
-        do i = 1, tempcol%blockindex
-            print *, tempcol%data(i)%data
-        end do
-        print *, size(tempcol)
+        print *, size(coll(1))
+        call collector_char_print(coll(1))
+        print *, size(coll(2))
+        call collector_char_print(coll(2))
     end subroutine part2
     !
     ! Want this to be here for future reference

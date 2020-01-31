@@ -1,0 +1,142 @@
+#define PASTE(a) a
+#define CAT2(a, b) PASTE(a)b
+#define CAT3(a, b, c) PASTE(a)CAT2(b,c)
+
+#define COLLECTOR_NAME CAT2(collector_,TYPE_NAME)
+#define ARRAY_TYPE CAT2(collector_array_type_,TYPE_NAME)
+
+#define FUN_NAME(a) CAT3(a,_,COLLECTOR_NAME)
+
+module CAT2(collectormodule_,TYPE_NAME)
+    use utilmodule
+    implicit none
+    !
+    public :: COLLECTOR_NAME
+    !
+    integer :: initial_blockamt = 8, scale_factor = 2
+    !
+    type array_type
+        COLLECTOR_TYPE, allocatable :: data(:)
+    end type
+    !
+    type COLLECTOR_NAME
+        integer :: blocksize, blockindex, subindex
+        type(array_type), allocatable :: data(:)
+    contains
+        procedure, public :: New  => FUN_NAME(new)
+        procedure, public :: push => FUN_NAME(push)
+        procedure, public :: len  => FUN_NAME(len)
+        procedure, public :: at   => FUN_NAME(index)
+        final             :: FUN_NAME(finalizer)
+    end type
+    !
+    public :: Size
+    interface Size
+        module procedure FUN_NAME(len)
+    end interface
+contains
+    subroutine FUN_NAME(new)(self, blocksize)
+        implicit none
+        class(COLLECTOR_NAME), intent(inout) :: self
+        integer, intent(in)                 :: blocksize
+        !
+        self%blocksize = blocksize
+        self%blockindex = 1
+        self%subindex = 1
+        allocate (self%data(initial_blockamt))
+        allocate (self%data(1)%data(blocksize))
+    end subroutine FUN_NAME(new)
+    !
+    subroutine FUN_NAME(expand)(arr)
+        implicit none
+        !
+        type(array_type), allocatable, intent(inout) :: arr(:)
+        type(array_type), allocatable                :: buffer(:)
+        integer :: i
+        !
+        allocate (buffer(size(arr) * scale_factor))
+        !
+        do i = 1, size(arr)
+            buffer(i) = arr(i)
+        end do
+        deallocate (arr)
+        arr = buffer
+    end subroutine FUN_NAME(expand)
+    !
+    subroutine FUN_NAME(push)(self, val)
+        implicit none
+        !
+        class(COLLECTOR_NAME), intent(inout) :: self
+        COLLECTOR_TYPE, intent(in) :: val
+        !
+        self%data(self%blockindex)%data(self%subindex) = val
+        !
+        call inc(self%subindex, 1)
+        if (self%subindex > self%blocksize) then
+            self%subindex = 1
+            call inc(self%blockindex, 1)
+            if (self%blockindex > size(self%data)) then
+                call FUN_NAME(expand)(self%data)
+            end if
+            allocate (self%data(self%blockindex)%data(self%blocksize))
+        end if
+    end subroutine FUN_NAME(push)
+    !
+    subroutine FUN_NAME(finalizer)(self)
+        implicit none
+        !
+        type(COLLECTOR_NAME), intent(inout) :: self
+        !
+        integer :: i
+        !
+        do i = 1, self%blockindex
+            deallocate (self%data(i)%data)
+        end do
+        deallocate (self%data)
+    end subroutine FUN_NAME(finalizer)
+    !
+    function FUN_NAME(len)(self) result(ret)
+        implicit none
+        !
+        class(COLLECTOR_NAME), intent(in) :: self
+        integer :: ret
+        !
+        ret = (self%blockindex - 1) * self%blocksize + self%subindex - 1
+    end function FUN_NAME(len)
+    !
+    function FUN_NAME(toarray)(self) result(ret)
+        implicit none
+        !
+        class(COLLECTOR_NAME), intent(in) :: self
+        COLLECTOR_TYPE, allocatable :: ret(:)
+        !
+        allocate (ret(self%len()))
+    end function FUN_NAME(toarray)
+    !
+    function FUN_NAME(index)(self, i) result(ret)
+        implicit none
+        !
+        class(COLLECTOR_NAME), target, intent(in) :: self
+        integer, intent(in) :: i
+        COLLECTOR_TYPE, pointer :: ret
+        integer :: i1, i2
+        !
+        i1 = (i - 1) / self%blocksize + 1
+        i2 = modulo(i - 1, self%blocksize) + 1
+        !
+        ret => self%data(i1)%data(i2)
+    end function FUN_NAME(index)
+    !
+    subroutine FUN_NAME(push_bunch)(self, bunch)
+        implicit none
+        !
+        class(COLLECTOR_NAME), intent(inout) :: self
+        COLLECTOR_TYPE, intent(in) :: bunch(:)
+        !
+        integer :: i
+        !
+        do i = 1, size(bunch)
+            call self%push(bunch(i))
+        end do
+    end subroutine FUN_NAME(push_bunch)
+end module CAT2(collectormodule_,TYPE_NAME)
