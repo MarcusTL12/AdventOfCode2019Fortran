@@ -1,7 +1,6 @@
 module day3
     use collectormodule_char
     use collectormodule_char_spes
-    ! use collectormodule_int
     use utilmodule
     implicit none
     !
@@ -13,95 +12,65 @@ module day3
     end type
     !
 contains
-    ! subroutine loadfile(filename, arr1, arr2)
-    !     implicit none
-    !     !
-    !     character(len=*), intent(in) :: filename
-    !     type(ftlString), allocatable, intent(out) :: arr1(:), arr2(:)
-    !     !
-    !     type(ftlString) :: lines(2)
-    !     integer :: iostatus
-    !     !
-    !     open (unit=1, file=filename)
-    !     read (1, *, iostat=iostatus) lines
-    !     close (1)
-    !     !
-    !     arr1 = lines(1)%Split(',')
-    !     arr2 = lines(2)%Split(',')
-    ! end subroutine loadfile
-    ! !
-    ! subroutine parsepath(pathin, pathout)
-    !     implicit none
-    !     !
-    !     type(ftlString), intent(in)          :: pathin(:)
-    !     type(step), allocatable, intent(out) :: pathout(:)
-    !     !
-    !     integer     :: i
-    !     type(step)  :: step_buffer
-    !     !
-    !     allocate (pathout(size(pathin)))
-    !     !
-    !     do i = 1, size(pathin)
-    !         read (pathin(i)%raw, '(A1, I10.1)') &
-    !             step_buffer%dir, step_buffer%length
-    !         !
-    !         pathout(i) = step_buffer
-    !     end do
-    ! end subroutine parsepath
-    ! !
-    ! subroutine loadandparse(filename, path1, path2)
-    !     implicit none
-    !     !
-    !     character(len=*), intent(in)        :: filename
-    !     type(step), allocatable, intent(out) :: path1(:), path2(:)
-    !     !
-    !     type(ftlString), allocatable :: arr1(:), arr2(:)
-    !     !
-    !     call loadfile(filename, arr1, arr2)
-    !     !
-    !     call parsepath(arr1, path1)
-    !     call parsepath(arr2, path2)
-    !     !
-    !     deallocate (arr1, arr2)
-    ! end subroutine loadandparse
-    !
-    function loadfile(filename) result(ret)
+    function loadfile(filename) result(lines)
         implicit none
         !
         character(len=*), intent(in) :: filename
-        integer :: ret
-        type(collector_char) :: linecollector
-        type(char_arr), allocatable :: line1(:)
-        integer :: i
+        type(astring_arr) :: lines(2)
+        type(collector_char) :: linecollectors(2)
+        integer :: ios, i
+        character, allocatable :: buffer(:)
         !
-        
+        call linecollectors(1)%new(128)
+        call linecollectors(2)%new(128)
         !
         open (1, file=filename)
-        read (1, *) linecollector
+        read (1, *, iostat=ios) linecollectors
+        do i = 1, size(lines)
+            buffer = linecollectors(i)%toarray()
+            lines(i)%data = splitwithdelimiter(buffer, ',')
+            deallocate (buffer)
+        end do
         close (1)
-        !
-        
-        !
     end function loadfile
     !
-    pure integer function countlines(filename)
+    function parsepath(path) result(res)
         implicit none
         !
-        character(len=*), intent(in) :: filename
+        type(astring), intent(in) :: path(:)
+        type(step), allocatable   :: res(:)
+        integer :: i
+        character(len=5) :: buffer
         !
-        countlines = len(filename)
-    end function
+        allocate (res(size(path)))
+        !
+        do i = 1, size(path)
+            call arr_to_string(path(i)%data, buffer)
+            read (buffer, '(A1, I10.1)') res(i)%dir, res(i)%length
+        end do
+    end function parsepath
     !
     subroutine part1()
         implicit none
         !
-        ! type(step), allocatable :: path1(:), path2(:)
-        ! !
-        ! call loadandparse('inputfiles/day3/example1.txt', path1, path2)
-        ! !
-        ! print *, path1, path2
-        ! !
-        ! deallocate (path1, path2)
+        type(astring_arr) :: paths(2)
+        type(step), allocatable :: path1(:), path2(:)
+        integer :: i
+        !
+        paths = loadfile('inputfiles/day3/example1.txt')
+        !
+        path1 = parsepath(paths(1)%data)
+        path2 = parsepath(paths(2)%data)
+        !
+        deallocate (paths(1)%data)
+        deallocate (paths(2)%data)
+        !
+        do i = 1, size(path1)
+            print *, path1(i)%dir, path1(i)%length
+        end do
+        do i = 1, size(path2)
+            print *, path2(i)%dir, path2(i)%length
+        end do
     end subroutine part1
     !
     subroutine testfunc(arr)
@@ -114,40 +83,5 @@ contains
     !
     subroutine part2()
         implicit none
-        !
-        type(collector_char) :: coll(2)
-        character, allocatable :: temparr(:)
-        type(char_arr), allocatable :: temp(:)
-        integer :: i
-        !
-        call coll(1)%New(100)
-        call coll(2)%New(100)
-        !
-        open (unit=1, file='inputfiles/day3/input.txt')
-        read (1, *) coll
-        close (1)
-        !
-        !
-        temparr = coll(1)%toarray()
-        !
-        temp = splitwithdelimiter(temparr, ',')
-        !
-        print *, size(temp)
-        do i = 1, size(temp)
-            print *, temp(i)%data
-        end do
     end subroutine part2
-    !
-    ! Want this to be here for future reference
-    pure function countcomma(str) result(ans)
-        implicit none
-        !
-        character(len=*), intent(in) :: str
-        integer :: ans, i
-        !
-        ans = 0
-        do i = 1, len(str)
-            if (str(i:i) == ',') ans = ans + 1
-        end do
-    end function countcomma
 end module day3

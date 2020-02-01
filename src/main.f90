@@ -30,5 +30,4 @@ program main
     case default
         print *, 'Not Implemented'
     end select
-
 end program main

@@ -2,14 +2,14 @@
 #define TYPE_NAME char
 #include "collector.f90_template"
 
-#define COLLECTOR_TYPE char_arr
-#define TYPE_NAME char_arr
+#define COLLECTOR_TYPE astring
+#define TYPE_NAME astring
 #define TYPE_MODULE utilmodule
 #include "collector.f90_template"
 
 module collectormodule_char_spes
     use collectormodule_char
-    use collectormodule_char_arr
+    use collectormodule_astring
     implicit none
     !
     public :: collector_char_print, splitwithdelimiter
@@ -97,23 +97,23 @@ contains
         implicit none
         !
         character, intent(in) :: str(:), delim
-        type(char_arr), allocatable :: ret(:)
-        type(char_arr) :: buffer
-        type(collector_char_arr) :: coll
+        type(astring), allocatable :: ret(:)
+        type(astring) :: buffer
+        type(collector_astring) :: coll
         integer :: i, curstart
         !
-        call coll%New(16)
+        call coll%new(16)
         !
         curstart = 1
         do i = 1, size(str)
             if (str(i) == delim) then
-                call buffer%New(str(curstart:i - 1))
+                call buffer%new(str(curstart:i - 1))
                 call coll%push(buffer)
                 curstart = i + 1
             end if
         end do
         !
-        call buffer%New(str(curstart:))
+        call buffer%new(str(curstart:))
         call coll%push(buffer)
         !
         ret = coll%toarray()

@@ -32,7 +32,7 @@ module CAT2(collectormodule_,TYPE_NAME)
         integer :: blocksize, blockindex, subindex
         type(ARRAY_TYPE), allocatable :: data(:)
     contains
-        procedure, public :: New     => FUN_NAME(new)
+        procedure, public :: new     => FUN_NAME(new)
         procedure, public :: push    => FUN_NAME(push)
         procedure, public :: len     => FUN_NAME(len)
         procedure, public :: at      => FUN_NAME(index)
@@ -156,15 +156,6 @@ contains
             call self%push(bunch(i))
         end do
     end subroutine FUN_NAME(push_bunch)
-    !
-    subroutine FUN_NAME(reset)(self)
-        implicit none
-        !
-        class(COLLECTOR_NAME), intent(out) :: self
-        !
-        self%blockindex = 1
-        self%subindex = 1
-    end subroutine FUN_NAME(reset)
 end module CAT2(collectormodule_,TYPE_NAME)
 
 #undef TYPE_NAME
