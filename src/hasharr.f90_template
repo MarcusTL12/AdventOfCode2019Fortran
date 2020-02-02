@@ -1,0 +1,17 @@
+#define CAT2(a, b) PASTE(a)b
+#define PASTE(a) a
+
+pure function CAT2(hasharr_,TYPE_NAME)(a) result(h)
+    implicit none
+    !
+    TYPE_NAME, intent(in) :: a(:)
+    integer :: h, i
+    !
+    h = seed1
+    !
+    do i = 1, size(a)
+        call fusehash(h, hash(a(i)))
+    end do
+end function CAT2(hasharr_,TYPE_NAME)
+
+#undef TYPE_NAME

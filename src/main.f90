@@ -3,7 +3,7 @@ program main
     use day3, only: d3a => part1, d3b => part2
     implicit none
     !
-    character (len=10) :: arg1, arg2
+    character(len=10) :: arg1, arg2
     !
     call getarg(1, arg1)
     call getarg(2, arg2)
