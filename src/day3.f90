@@ -2,7 +2,7 @@ module day3
     use collectormodule_char
     use collectormodule_char_spes
     use utilmodule
-    use hashmodule
+    use hashmapmodule_int_int
     implicit none
     !
     public :: part1, part2
@@ -302,7 +302,28 @@ contains
     subroutine part2()
         implicit none
         !
-        character(len=25) :: name = 'AB'
-        print *, hash(name)
+        type(hashmap_int_int) :: testmap
+        ! logical :: buff
+        !
+        call testmap%new()
+        !
+        call testmap%set(7, 5)
+        call testmap%set(7 + 8, 7)
+        call testmap%set(8, 6)
+        call testmap%set(7 + 8 * 2, 8)
+        call testmap%set(7 + 8 * 3, 9)
+        !
+        print *, testmap%meta
+        print *, testmap%keys
+        print *, testmap%vals
+        !
+        print *
+        print *, testmap%get(7)
+        print *, testmap%get(8)
+        print *, testmap%get(7 + 8)
+        print *, testmap%get(7 + 8 * 2)
+        print *, testmap%get(7 + 8 * 3)
+        !
+        call testmap%deleteat(7 + 8 * 1)
     end subroutine part2
 end module day3

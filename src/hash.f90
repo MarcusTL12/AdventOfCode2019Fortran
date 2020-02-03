@@ -2,7 +2,7 @@ module hashmodule
     implicit none
     private
     !
-    integer :: seed1 = 543748773, seed2 = 442244848
+    integer :: seed1 = 543748773, seed2 = 442244847
     !
     public :: hash
     interface hash

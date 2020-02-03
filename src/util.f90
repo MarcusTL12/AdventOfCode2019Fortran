@@ -1,7 +1,8 @@
 module utilmodule
     implicit none
+    private
     !
-    public :: inc
+    public :: inc, astring, astring_arr, arr_to_string
     !
     type astring
         character, allocatable :: data(:)
@@ -20,10 +21,10 @@ module utilmodule
     end type
     !
     interface inc
-        module procedure inc_int, inc_real
+        module procedure inc_int, inc_real, inc_int8
     end interface
 contains
-    subroutine inc_int(a, b)
+    pure subroutine inc_int(a, b)
         implicit none
         !
         integer, intent(inout) :: a
@@ -32,7 +33,7 @@ contains
         a = a + b
     end subroutine inc_int
     !
-    subroutine inc_real(a, b)
+    pure subroutine inc_real(a, b)
         implicit none
         !
         real, intent(inout) :: a
@@ -40,6 +41,15 @@ contains
         !
         a = a + b
     end subroutine inc_real
+    !
+    pure subroutine inc_int8(a, b)
+        implicit none
+        !
+        integer(1), intent(inout) :: a
+        integer(1), intent(in)    :: b
+        !
+        a = a + b
+    end subroutine inc_int8
     !
     subroutine new_astring_from_string(self, str)
         implicit none
