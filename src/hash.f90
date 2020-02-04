@@ -7,6 +7,7 @@ module hashmodule
     public :: hash
     interface hash
         module procedure hashint
+        module procedure hashint8
         module procedure hashstr
         module procedure hasharr_integer
         module procedure hasharr_character
@@ -20,8 +21,19 @@ contains
         integer, intent(in) :: a
         integer             :: h
         !
-        h = a
-    end
+        h = seed1
+        call fusehash(h, a)
+    end function hashint
+    !
+    pure function hashint8(a) result(h)
+        implicit none
+        !
+        integer(1), intent(in) :: a
+        integer             :: h
+        !
+        h = seed1
+        call fusehash(h, int(a, 4))
+    end function hashint8
     !
     pure subroutine fusehash(a, b)
         implicit none

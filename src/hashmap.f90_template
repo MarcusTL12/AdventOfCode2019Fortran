@@ -1,0 +1,408 @@
+#define PASTE(a) a
+#define CAT2(a, b) PASTE(a)b
+#define CAT3(a, b, c) PASTE(a)CAT2(b,c)
+#define CAT4(a, b, c, d) PASTE(a)CAT3(b,c,d)
+
+#ifndef KEY_NAME
+#define KEY_NAME KEY_TYPE
+#endif
+
+#ifndef VAL_NAME
+#define VAL_NAME VAL_TYPE
+#endif
+
+#define MODULE_NAME CAT4(hashmapmodule_,KEY_NAME,_,VAL_NAME)
+#define TYPE_NAME CAT4(hashmap_,KEY_NAME,_,VAL_NAME)
+
+#ifdef KEY_MODULE
+#define KEY_TTYPE type(KEY_TYPE)
+#else
+#define KEY_TTYPE KEY_TYPE
+#endif
+
+#ifdef VAL_MODULE
+#define VAL_TTYPE type(VAL_TYPE)
+#else
+#define VAL_TTYPE VAL_TYPE
+#endif
+
+module MODULE_NAME
+    use hashmodule
+    use utilmodule, only: inc
+#ifdef KEY_MODULE
+    use KEY_MODULE, only: KEY_TYPE
+#endif
+#ifdef VAL_MODULE
+    use VAL_MODULE, only: VAL_TYPE
+#endif
+    implicit none
+    private
+    !
+    integer, parameter :: initsize = 8, resizefactor = 2, amtbools = 2
+    real, parameter    :: fillthreshhold = 2.0 / 3
+    !
+    public :: TYPE_NAME
+    type TYPE_NAME
+        integer(1), allocatable :: meta(:)
+        KEY_TTYPE, allocatable    :: keys(:)
+        VAL_TTYPE, allocatable    :: vals(:)
+        integer :: amtelements = 0
+    contains
+        private
+        procedure, public :: new => map_new
+        procedure, public :: get => map_get_index
+        procedure, public :: set => map_set_index
+        procedure, public :: deleteat => map_deleteat
+        procedure, public :: getkeys => map_keys
+        procedure, public :: getvals => map_vals
+        procedure, public :: firstkey => map_first_key
+        procedure, public :: next => map_next_kvp
+#ifndef DISABLE_PRINT
+        procedure, public :: show => map_show
+#endif
+        generic, public   :: assignment(=) => map_new_from_other
+        final     :: map_finalizer
+        procedure :: map_new_from_other
+        procedure :: key_to_index
+        procedure :: hashmod
+        procedure :: insert => map_insert
+        procedure :: new_raw => map_new_raw
+        procedure :: regrow => map_regrow
+    end type
+    public :: size
+    interface size
+        module procedure :: map_size
+    end interface
+contains
+    pure subroutine map_new(self)
+        implicit none
+        !
+        class(TYPE_NAME), intent(inout) :: self
+        !
+        call map_finalizer(self)
+        !
+        call self%new_raw(initsize)
+    end subroutine map_new
+    !
+    pure subroutine map_new_size(self, size)
+        implicit none
+        !
+        class(TYPE_NAME), intent(inout) :: self
+        integer, intent(in) :: size
+        integer :: size2
+        !
+        call map_finalizer(self)
+        !
+        size2 = initsize
+        !
+        do while (size2 < size / fillthreshhold)
+            size2 = ishft(size2, 1)
+        end do
+        !
+        call self%new_raw(size2)
+    end subroutine map_new_size
+    !
+    pure subroutine map_new_raw(self, size)
+        implicit none
+        !
+        class(TYPE_NAME), intent(inout) :: self
+        integer, intent(in) :: size
+        !
+        call map_finalizer(self)
+        !
+        allocate (self%meta(size), self%keys(size), self%vals(size))
+    end subroutine map_new_raw
+    !
+    pure subroutine map_new_from_other(self, other)
+        implicit none
+        !
+        class(TYPE_NAME), intent(inout) :: self
+        class(TYPE_NAME), intent(in)    :: other
+        !
+        call map_finalizer(self)
+        !
+        self%meta = other%meta
+        self%keys = other%keys
+        self%vals = other%vals
+    end subroutine map_new_from_other
+    !
+    pure subroutine map_finalizer(self)
+        implicit none
+        !
+        type(TYPE_NAME), intent(inout) :: self
+        !
+        if (allocated(self%meta)) then
+            deallocate (self%meta, self%keys, self%vals)
+        end if
+    end subroutine map_finalizer
+    !
+    pure function map_size(self)
+        implicit none
+        !
+        type(TYPE_NAME), intent(in) :: self
+        integer :: map_size
+        map_size = self%amtelements
+    end function map_size
+    !
+    pure function hashmod(self, key) result(hm)
+        implicit none
+        !
+        class(TYPE_NAME), intent(in) :: self
+        KEY_TTYPE, intent(in) :: key
+        integer :: hm
+        !
+        hm = modulo(hash(key), size(self%meta)) + 1
+    end function hashmod
+    !
+    pure subroutine key_to_index(self, key, ind, status, firstdeleted)
+        implicit none
+        !
+        class(TYPE_NAME), intent(in) :: self
+        KEY_TTYPE, intent(in)              :: key
+        integer, intent(out)               :: ind
+        logical, intent(inout)             :: status
+        integer, optional, intent(out)     :: firstdeleted
+        integer :: origind, amt, deleted
+        !
+        deleted = 0
+        status = .true.
+        origind = self%hashmod(key)
+        ind = origind
+        amt = ishft(self%meta(ind), -amtbools)
+        !
+        if (self%meta(ind) == 0) then
+            goto 10
+        end if
+        !
+        do while (self%keys(ind) /= key .and. amt >= 0)
+            if (iand(self%meta(ind), int(2, 1)) /= 0 .and. deleted == 0) then
+                deleted = ind
+            end if
+            if (self%meta(ind) == 0) then
+                status = .false.
+                exit
+            else if (self%hashmod(self%keys(ind)) == origind) then
+                amt = amt - 1
+            end if
+            ind = ind + 1
+            if (ind > size(self%meta)) ind = 1
+        end do
+10      status = self%meta(ind) /= 0
+        if (present(firstdeleted)) firstdeleted = deleted
+    end subroutine key_to_index
+    !
+    subroutine map_regrow(self)
+        implicit none
+        !
+        class(TYPE_NAME), intent(inout) :: self
+        type(TYPE_NAME) :: newmap
+        KEY_TTYPE :: k
+        VAL_TTYPE :: v
+        logical :: status
+        !
+        call newmap%new_raw(size(self%meta) * resizefactor)
+        !
+        status = .false.
+        do while (self%next(k, v, status))
+            call newmap%set(k, v)
+        end do
+        !
+        self = newmap
+    end subroutine map_regrow
+    !
+    subroutine map_insert(self, key, val, ind)
+        implicit none
+        !
+        class(TYPE_NAME), intent(inout) :: self
+        KEY_TTYPE, intent(in) :: key
+        VAL_TTYPE, intent(in) :: val
+        integer, intent(in) :: ind
+        integer             :: h
+        !
+        h = self%hashmod(key)
+        call inc(self%meta(h), int(ishft(1, amtbools), 1))
+        if (h /= ind) self%meta(ind) = ibset(self%meta(ind), 0)
+        self%meta(ind) = ibclr(self%meta(ind), 1)
+        !
+        self%keys(ind) = key
+        self%vals(ind) = val
+    end subroutine map_insert
+    !
+    function map_get_index(self, key) result(ret)
+        implicit none
+        !
+        class(TYPE_NAME), intent(in) :: self
+        KEY_TTYPE, intent(in) :: key
+        VAL_TTYPE :: ret
+        integer :: ind
+        logical :: status
+        !
+        call self%key_to_index(key, ind, status)
+        !
+        ret = self%vals(ind)
+    end function map_get_index
+    !
+    subroutine map_set_index(self, key, val)
+        implicit none
+        !
+        class(TYPE_NAME), intent(inout) :: self
+        KEY_TTYPE, intent(in) :: key
+        VAL_TTYPE, intent(in) :: val
+        logical :: status
+        integer :: ind, deleted
+        !
+        call self%key_to_index(key, ind, status, deleted)
+        !
+        if (status) then
+            self%vals(ind) = val
+        else
+            if (deleted /= 0) ind = deleted
+            call self%insert(key, val, ind)
+            call inc(self%amtelements, 1)
+            if (size(self) > fillthreshhold * size(self%meta)) then
+                call self%regrow()
+            end if
+        end if
+    end subroutine map_set_index
+    !
+    subroutine map_deleteat(self, key)
+        implicit none
+        !
+        class(TYPE_NAME), intent(inout) :: self
+        KEY_TTYPE, intent(in) :: key
+        integer :: ind
+        logical :: status
+        !
+        call self%key_to_index(key, ind, status)
+        !
+        if (status) then
+            self%meta(ind) = ibclr(self%meta(ind), 0)
+            self%meta(ind) = ibset(self%meta(ind), 1)
+            call inc(self%amtelements, -1)
+        end if
+    end subroutine map_deleteat
+    !
+    pure function map_keys(self)
+        implicit none
+        !
+        class(TYPE_NAME), intent(in) :: self
+        KEY_TTYPE, allocatable :: map_keys(:)
+        integer :: i, j, s
+        !
+        s = size(self)
+        j = 0
+        i = 1
+        !
+        allocate (map_keys(s))
+        !
+        do while (j < s)
+            if (self%meta(i) /= 0 .and. iand(self%meta(i), 2) == 0) then
+                j = j + 1
+                map_keys(j) = self%keys(i)
+            end if
+            i = i + 1
+        end do
+    end function map_keys
+    !
+    pure function map_vals(self)
+        implicit none
+        !
+        class(TYPE_NAME), intent(in) :: self
+        VAL_TTYPE, allocatable :: map_vals(:)
+        integer :: i, j, s
+        !
+        s = size(self)
+        j = 0
+        i = 1
+        !
+        allocate (map_vals(s))
+        !
+        do while (j < s)
+            if (self%meta(i) /= 0 .and. iand(self%meta(i), 2) == 0) then
+                j = j + 1
+                map_vals(j) = self%vals(i)
+            end if
+            i = i + 1
+        end do
+    end function map_vals
+    !
+    pure function map_first_key(self) result(key)
+        implicit none
+        !
+        class(TYPE_NAME), intent(in) :: self
+        KEY_TTYPE :: key
+        integer :: i
+        !
+        do i = 1, size(self%meta)
+            if (self%meta(i) /= 0 .and. iand(self%meta(i), 2) == 0) then
+                key = self%keys(i)
+                return
+            end if
+        end do
+    end function map_first_key
+    !
+    function map_next_kvp(self, key, val, status) result(stat)
+        implicit none
+        !
+        class(TYPE_NAME), intent(in) :: self
+        KEY_TTYPE, intent(inout) :: key
+        VAL_TTYPE, intent(inout) :: val
+        logical, intent(inout) :: status
+        logical :: stat
+        integer :: ind, i
+        !
+        if (.not. status) then
+            key = self%firstkey()
+            val = self%get(key)
+            status = .true.
+            stat = .true.
+            return
+        end if
+        !
+        call self%key_to_index(key, ind, status)
+        if (status) then
+            status = .false.
+            do i = ind + 1, size(self%meta)
+                if (self%meta(i) /= 0 .and. iand(self%meta(i), 2) == 0) then
+                    key = self%keys(i)
+                    val = self%vals(i)
+                    status = .true.
+                    exit
+                end if
+            end do
+        end if
+        stat = status
+    end function map_next_kvp
+    !
+#ifndef DISABLE_PRINT
+    subroutine map_show(self)
+        implicit none
+        !
+        class(TYPE_NAME), intent(in) :: self
+        KEY_TTYPE :: k
+        VAL_TTYPE :: v
+        logical :: status
+        !
+        print *, '{'
+        status = .false.
+        do while (self%next(k, v, status))
+            print *, k, ' => ', v
+        end do
+        print *, '}'
+    end subroutine map_show
+#endif
+end module
+
+#undef KEY_NAME
+#undef KEY_TYPE
+#undef KEY_MODULE
+#undef KEY_TTYPE
+
+#undef VAL_NAME
+#undef VAL_TYPE
+#undef VAL_MODULE
+#undef VAL_TTYPE
+
+#undef MODULE_NAME
+#undef TYPE_NAME
+#undef DISABLE_PRINT

@@ -302,28 +302,25 @@ contains
     subroutine part2()
         implicit none
         !
-        type(hashmap_int_int) :: testmap
-        ! logical :: buff
+        type(hashmap_char_int) :: testmap
         !
         call testmap%new()
         !
-        call testmap%set(7, 5)
-        call testmap%set(7 + 8, 7)
-        call testmap%set(8, 6)
-        call testmap%set(7 + 8 * 2, 8)
-        call testmap%set(7 + 8 * 3, 9)
+        call testmap%set('A', 5)
+        call testmap%set('B', 7)
+        call testmap%set('Q', 6)
+        call testmap%set('D', 8)
+        call testmap%set('E', 9)
         !
         print *, testmap%meta
         print *, testmap%keys
         print *, testmap%vals
+        call testmap%show()
         !
-        print *
-        print *, testmap%get(7)
-        print *, testmap%get(8)
-        print *, testmap%get(7 + 8)
-        print *, testmap%get(7 + 8 * 2)
-        print *, testmap%get(7 + 8 * 3)
+        call testmap%set('F', 10)
         !
-        call testmap%deleteat(7 + 8 * 1)
+        print *, 's: ', size(testmap)
+        !
+        call testmap%show()
     end subroutine part2
 end module day3

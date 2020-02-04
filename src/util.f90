@@ -23,6 +23,14 @@ module utilmodule
     interface inc
         module procedure inc_int, inc_real, inc_int8
     end interface
+    !
+    interface write(unformatted)
+            module procedure astring_write_u
+    end interface
+    !
+    interface write(formatted)
+            module procedure astring_write_f
+    end interface
 contains
     pure subroutine inc_int(a, b)
         implicit none
@@ -65,6 +73,12 @@ contains
         end do
     end subroutine new_astring_from_string
     !
+    pure function astring_eq(self, rhs) result(eq)
+        implicit none
+        !
+        class(astring), intent(in) :: self, rhs
+    end function astring_eq
+    !
     subroutine new_astring_from_arr(self, str)
         implicit none
         !
@@ -81,6 +95,35 @@ contains
         !
         if (allocated(self%data)) deallocate (self%data)
     end subroutine astringfinalizer
+    !
+    subroutine astring_write_u(self, unit, iostat, iomsg)
+        implicit none
+        !
+        class(astring), intent(in)    :: self
+        integer, intent(in)    :: unit
+        integer, intent(out)   :: iostat
+        character(len=*), intent(inout) :: iomsg
+        !
+        write (unit, iostat=iostat, iomsg=iomsg) self%data
+    end subroutine
+    !
+    subroutine astring_write_f(self, unit, iotype, v_list, iostat, iomsg)
+        implicit none
+        !
+        class(astring), intent(in)    :: self
+        integer, intent(in)    :: unit
+        character(len=*), intent(in)    :: iotype
+        integer, intent(in)    :: v_list(:)
+        integer, intent(out)   :: iostat
+        character(len=*), intent(inout) :: iomsg
+        integer :: dummy1
+        character :: dummy2
+        !
+        dummy1 = v_list(1)
+        dummy2 = iotype(1:1)
+        !
+        write (unit, '(A)', iostat=iostat, iomsg=iomsg) self%data
+    end subroutine
     !
     subroutine astring_arrfinalizer(self)
         implicit none
