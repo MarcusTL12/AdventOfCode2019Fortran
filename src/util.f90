@@ -1,4 +1,5 @@
 module utilmodule
+    use hashmodule
     implicit none
     private
     !
@@ -12,7 +13,21 @@ module utilmodule
         generic, public :: new => new_astring_from_arr, &
             new_astring_from_string
         final           :: astringfinalizer
+        procedure       :: astring_eq
+        generic, public :: operator(==) => astring_eq
+        procedure       :: astring_neq
+        generic, public :: operator(/=) => astring_neq
     end type
+    !
+    public :: size
+    interface size
+        module procedure astring_size
+    end interface
+    !
+    public :: hash
+    interface hash
+        module procedure astring_hash
+    end interface
     !
     type astring_arr
         type(astring), allocatable :: data(:)
@@ -20,16 +35,18 @@ module utilmodule
         final :: astring_arrfinalizer
     end type
     !
+    public :: write (unformatted)
+    interface write (unformatted)
+        module procedure astring_write_u
+    end interface
+    !
+    public :: write (formatted)
+    interface write (formatted)
+        module procedure astring_write_f
+    end interface
+    !
     interface inc
         module procedure inc_int, inc_real, inc_int8
-    end interface
-    !
-    interface write(unformatted)
-            module procedure astring_write_u
-    end interface
-    !
-    interface write(formatted)
-            module procedure astring_write_f
     end interface
 contains
     pure subroutine inc_int(a, b)
@@ -66,6 +83,7 @@ contains
         character(len=*), intent(in) :: str
         integer        :: i
         !
+        call astringfinalizer(self)
         allocate (self%data(len_trim(str)))
         !
         do i = 1, size(self%data)
@@ -73,11 +91,48 @@ contains
         end do
     end subroutine new_astring_from_string
     !
-    pure function astring_eq(self, rhs) result(eq)
+    pure integer function astring_size(self) result(s)
         implicit none
         !
-        class(astring), intent(in) :: self, rhs
+        type(astring), intent(in) :: self
+        !
+        s = size(self%data)
+    end function astring_size
+    !
+    pure logical function astring_eq(self, rhs) result(eq)
+        implicit none
+        !
+        class(astring), intent(in) :: self
+        type(astring), intent(in) :: rhs
+        integer :: i
+        !
+        eq = .true.
+        if (size(self) /= size(rhs)) then
+            eq = .false.
+        else
+            do i = 1, size(self)
+                eq = self%data(i) == rhs%data(i)
+                if (.not. eq) return
+            end do
+        end if
     end function astring_eq
+    !
+    pure logical function astring_neq(self, rhs) result(eq)
+        implicit none
+        !
+        class(astring), intent(in) :: self
+        type(astring), intent(in)  :: rhs
+        !
+        eq = .not. (self == rhs)
+    end function astring_neq
+    !
+    pure integer function astring_hash(self) result(h)
+        implicit none
+        !
+        type(astring), intent(in) :: self
+        !
+        h = hash(self%data)
+    end function astring_hash
     !
     subroutine new_astring_from_arr(self, str)
         implicit none
@@ -105,6 +160,7 @@ contains
         character(len=*), intent(inout) :: iomsg
         !
         write (unit, iostat=iostat, iomsg=iomsg) self%data
+        print *, self%data
     end subroutine
     !
     subroutine astring_write_f(self, unit, iotype, v_list, iostat, iomsg)
@@ -117,12 +173,11 @@ contains
         integer, intent(out)   :: iostat
         character(len=*), intent(inout) :: iomsg
         integer :: dummy1
-        character :: dummy2
         !
-        dummy1 = v_list(1)
-        dummy2 = iotype(1:1)
+        dummy1 = size(v_list)
+        dummy1 = len(iotype)
         !
-        write (unit, '(A)', iostat=iostat, iomsg=iomsg) self%data
+        write (unit, *, iostat=iostat, iomsg=iomsg) self%data
     end subroutine
     !
     subroutine astring_arrfinalizer(self)

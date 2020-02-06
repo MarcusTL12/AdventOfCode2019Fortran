@@ -3,6 +3,7 @@ module day3
     use collectormodule_char_spes
     use utilmodule
     use hashmapmodule_int_int
+    use hashmapmodule_str_int
     implicit none
     !
     public :: part1, part2
@@ -302,22 +303,39 @@ contains
     subroutine part2()
         implicit none
         !
-        type(hashmap_char_int) :: testmap
+        type(hashmap_str_int) :: testmap
+        type(astring) :: buffer
         !
         call testmap%new()
         !
-        call testmap%set('A', 5)
-        call testmap%set('B', 7)
-        call testmap%set('Q', 6)
-        call testmap%set('D', 8)
-        call testmap%set('E', 9)
+        call buffer%new('Hei')
+        print *, buffer, hash(buffer), modulo(hash(buffer), 16)
+        call testmap%set(buffer, 5)
+        call buffer%new('Hade')
+        print *, buffer, hash(buffer), modulo(hash(buffer), 16)
+        call testmap%set(buffer, 7)
+        call buffer%new('Foo')
+        print *, buffer, hash(buffer), modulo(hash(buffer), 16)
+        call testmap%set(buffer, 6)
+        call buffer%new('Bar')
+        print *, buffer, hash(buffer), modulo(hash(buffer), 16)
+        call testmap%set(buffer, 8)
+        call buffer%new('Lol')
+        print *, buffer, hash(buffer), modulo(hash(buffer), 16)
+        call testmap%set(buffer, 9)
         !
         print *, testmap%meta
         print *, testmap%keys
         print *, testmap%vals
         call testmap%show()
         !
-        call testmap%set('F', 10)
+        call buffer%new('Kvante')
+        print *, buffer, hash(buffer), modulo(hash(buffer), 16)
+        call testmap%set(buffer, 10)
+        !
+        print *, testmap%meta
+        print *, testmap%keys
+        print *, testmap%vals
         !
         print *, 's: ', size(testmap)
         !

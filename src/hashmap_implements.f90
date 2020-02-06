@@ -13,6 +13,7 @@
 
 #define VAL_TYPE integer
 #define VAL_NAME int
+#define HASH_MODULE utilmodule
 
 #include "hashmap.f90_template"
 

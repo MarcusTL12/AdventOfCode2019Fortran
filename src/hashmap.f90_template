@@ -30,10 +30,13 @@ module MODULE_NAME
     use hashmodule
     use utilmodule, only: inc
 #ifdef KEY_MODULE
-    use KEY_MODULE, only: KEY_TYPE
+    use KEY_MODULE
 #endif
 #ifdef VAL_MODULE
-    use VAL_MODULE, only: VAL_TYPE
+    use VAL_MODULE
+#endif
+#ifdef HASH_MODULE
+    use HASH_MODULE
 #endif
     implicit none
     private
@@ -49,7 +52,7 @@ module MODULE_NAME
         integer :: amtelements = 0
     contains
         private
-        procedure, public :: new => map_new
+        generic, public   :: new => map_new, map_new_size
         procedure, public :: get => map_get_index
         procedure, public :: set => map_set_index
         procedure, public :: deleteat => map_deleteat
@@ -68,6 +71,8 @@ module MODULE_NAME
         procedure :: insert => map_insert
         procedure :: new_raw => map_new_raw
         procedure :: regrow => map_regrow
+        procedure :: map_new
+        procedure :: map_new_size
     end type
     public :: size
     interface size
@@ -111,6 +116,7 @@ contains
         call map_finalizer(self)
         !
         allocate (self%meta(size), self%keys(size), self%vals(size))
+        self%meta = 0
     end subroutine map_new_raw
     !
     pure subroutine map_new_from_other(self, other)
@@ -406,3 +412,4 @@ end module
 #undef MODULE_NAME
 #undef TYPE_NAME
 #undef DISABLE_PRINT
+#undef HASH_MODULE
